@@ -43,7 +43,7 @@ impl Display for Git {
             String::new()
         } else {
             format!(
-                "{}{}{}⭫",
+                "{}{}{}",
                 utils::RESET,
                 utils::small_number(self.ahead, false),
                 utils::RED
@@ -54,7 +54,7 @@ impl Display for Git {
             String::new()
         } else {
             format!(
-                "{}⭭{}{}",
+                "{}{}{}",
                 utils::RED,
                 utils::RESET,
                 utils::small_number(self.behind, true),
