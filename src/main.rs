@@ -5,23 +5,22 @@ mod utils;
 
 use std::{env, io};
 
-fn main() -> Result<(), std::io::Error> {
-    let command_args = env::args().collect::<Vec<String>>();
-    match &**command_args.get(1).unwrap() {
+fn main() -> io::Result<()> {
+    let mut args = env::args();
+    let exe = args.next().unwrap();
+    match args.next().unwrap().as_str() {
         "run" => run(
-            command_args.get(2).unwrap(),
-            command_args.get(3).unwrap_or(&"\n".to_string()),
+            args.next().unwrap().as_str(),
+            args.next().unwrap_or("\n".into()).as_str(),
         )?,
         "init" => {
-            let smpt_command = command_args.get(0).unwrap();
-            let shell = command_args.get(2).unwrap();
-            let shell_script = match &**shell {
+            let shell_script = match args.next().unwrap().as_str() {
                 "nu" => include_str!("shell/init.nu"),
                 "bash" => include_str!("shell/init.bash"),
-                _ => panic!("unknown shell: {shell}"),
+                shell => panic!("unknown shell: {shell}"),
             }
-            .replace("::SMPT::", smpt_command);
-            println!("{shell_script}")
+            .replace("::SMPT::", exe.as_str());
+            println!("{shell_script}");
         }
         _ => panic!("unknown command"),
     }
@@ -29,14 +28,14 @@ fn main() -> Result<(), std::io::Error> {
 }
 
 fn run(exit_status: &str, new_line: &str) -> io::Result<()> {
-    let exit_status = matches!(exit_status, "0");
+    let exit_status = exit_status == "0";
 
     let git = git::Git::new()?;
     let python = python::Python::new();
     let cwd = cwd::Cwd::new(git.repo_path.parent())?;
 
     print!(
-        "{reset}{new_line}  {cwd}{git}{python}{new_line} {prompt_color}❱⟩{reset} ",
+        "{reset}{new_line}{prompt_color}┃ {reset}{cwd}{git}{python}{new_line}{prompt_color}┃ {reset}hello",
         reset = utils::RESET,
         prompt_color = if exit_status {
             utils::GREEN
