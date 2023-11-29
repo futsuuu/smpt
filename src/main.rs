@@ -35,7 +35,7 @@ fn run(exit_status: &str, new_line: &str) -> io::Result<()> {
     let cwd = cwd::Cwd::new(git.repo_path.parent())?;
 
     print!(
-        "{reset}{new_line}{prompt_color}┃ {reset}{cwd}{git}{python}{new_line}{prompt_color}┃ {reset}hello",
+        "{reset}{new_line}{prompt_color}┃ {reset}{cwd}{git}{python}{new_line}{prompt_color}┃ {reset}",
         reset = utils::RESET,
         prompt_color = if exit_status {
             utils::GREEN
