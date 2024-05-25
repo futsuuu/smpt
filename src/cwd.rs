@@ -1,30 +1,31 @@
-use std::{env, fmt::Display, io, path::Path};
+use std::{
+    env,
+    fmt::Display,
+    io,
+    path::{Path, PathBuf},
+};
 
 use home::home_dir;
 
 use crate::utils;
 
 pub struct Cwd {
-    path: String,
-    parent: String,
+    path: PathBuf,
+    home: PathBuf,
+    parent: PathBuf,
 }
 
 impl Display for Cwd {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let a = self
-            .path
-            .replace('\\', "/")
+        let path = self.path.display().to_string().replace('\\', "/");
+        let parent = self.parent.display().to_string().replace('\\', "/") + "/";
+        let a = path
             .replace(
-                self.parent.as_str(),
-                format!("{}{}", self.parent, utils::BOLD).as_str(),
+                parent.as_str(),
+                format!("{}{}", parent, utils::BOLD).as_str(),
             )
             .replacen(
-                home_dir()
-                    .unwrap_or_default()
-                    .display()
-                    .to_string()
-                    .replace('\\', "/")
-                    .as_str(),
+                self.home.display().to_string().replace('\\', "/").as_str(),
                 "~",
                 1,
             );
@@ -35,17 +36,11 @@ impl Display for Cwd {
 impl Cwd {
     pub fn new(parent: Option<&Path>) -> io::Result<Cwd> {
         let cwd = env::current_dir()?;
-        let parent_path = match parent {
-            Some(p) => p,
-            None => cwd.parent().unwrap_or(Path::new("/")),
-        }
-        .display()
-        .to_string()
-        .replace('\\', "/")
-            + "/";
+        let parent = parent.unwrap_or(cwd.parent().unwrap_or(Path::new("/")));
         Ok(Self {
-            path: cwd.display().to_string(),
-            parent: parent_path,
+            path: cwd.clone(),
+            home: home_dir().unwrap_or_default(),
+            parent: parent.to_path_buf(),
         })
     }
 }

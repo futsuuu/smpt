@@ -1,4 +1,4 @@
-use std::{fmt::Display, fs::read_to_string, io, path::PathBuf};
+use std::{fmt::Display, io, path::PathBuf};
 
 use git2::Repository;
 
@@ -14,63 +14,47 @@ pub struct Git {
 
 impl Display for Git {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let branch = if self.branch.is_empty() {
+        if self.branch.is_empty() {
             return Ok(());
-        } else {
-            self.branch.as_str()
-        };
+        }
 
-        let branch_prefix = match branch.splitn(2, '/').collect::<Vec<&str>>()[0] {
-            "src" | "main" | "master" => {
-                format!("{} ", utils::YELLOW)
-            }
-            "dev" | "develop" => {
-                format!("{} ", utils::MAGENTA)
-            }
-            "feat" => {
-                format!("{} ", utils::CYAN)
-            }
-            "fix" => {
-                format!("{} ", utils::RED)
-            }
-            "release" => {
-                format!("{} ", utils::GREEN)
-            }
-            _ => format!("{} ", utils::CYAN),
+        f.write_str(utils::RESET)?;
+        f.write_str(" ⠶ ")?;
+        match self.branch.split_once('/').map(|t| t.0).unwrap_or(&self.branch) {
+            "src" | "main" | "master" => write!(f, "{} ", utils::YELLOW)?,
+            "dev" | "develop" => write!(f, "{} ", utils::MAGENTA)?,
+            "feat" => write!(f, "{} ", utils::CYAN)?,
+            "fix" => write!(f, "{} ", utils::RED)?,
+            "release" => write!(f, "{} ", utils::GREEN)?,
+            _ => write!(f, "{} ", utils::CYAN)?,
         };
+        f.write_str(&self.branch)?;
 
-        let ahead = if self.ahead == 0 {
-            String::new()
-        } else {
-            format!(
+        if self.ahead == 0 && self.behind == 0 {
+            return Ok(());
+        }
+        f.write_str(" ")?;
+
+        if self.ahead != 0 {
+            write!(
+                f,
                 "{}{}{}",
                 utils::RESET,
                 utils::small_number(self.ahead, false),
-                utils::RED
-            )
-        };
-
-        let behind = if self.behind == 0 {
-            String::new()
-        } else {
-            format!(
+                utils::RED,
+            )?;
+        }
+        if self.behind != 0 {
+            write!(
+                f,
                 "{}{}{}",
                 utils::RED,
                 utils::RESET,
                 utils::small_number(self.behind, true),
-            )
-        };
+            )?;
+        }
 
-        write!(
-            f,
-            "{} ⠶ {branch_prefix}{branch}{}{ahead}{behind}",
-            utils::RESET,
-            if self.ahead == 0 && self.behind == 0 {
-                ""
-            } else {
-                " "
-            }
-        )
+        Ok(())
     }
 }
 
@@ -81,15 +65,11 @@ impl Git {
         };
 
         let repo_path = repo.workdir().unwrap_or_else(|| repo.path()).to_path_buf();
-        let head_ref = read_to_string(repo.path().join("HEAD"))?;
-
-        let branch = if head_ref.starts_with("ref: refs/heads/") {
-            head_ref.trim_start_matches("ref: refs/heads/")
-        } else {
-            head_ref.get(..7).unwrap()
-        }
-        .trim()
-        .to_string();
+        let head_ref = repo.head().unwrap();
+        let branch = head_ref
+            .shorthand()
+            .unwrap_or_else(|| head_ref.name().expect("HEAD name is not valid utf-8"))
+            .to_string();
 
         let git = match repo.head() {
             Ok(head) => {

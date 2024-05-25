@@ -28,8 +28,7 @@ pub fn small_number(number: usize, top: bool) -> String {
                 "₀₁₂₃₄₅₆₇₈₉"
             }
             .chars()
-            .collect::<Vec<char>>()
-            .get(i.to_string().parse::<usize>().unwrap())
+            .nth(i.to_string().parse().unwrap())
             .unwrap()
             .to_string()
             .as_str(),
