@@ -3,12 +3,11 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - v*
 
 env:
   RUST_BACKTRACE: 1
   CARGO_TERM_COLOR: always
-  PACKAGE_NAME: smpt
 
 jobs:
   build:
@@ -17,103 +16,74 @@ jobs:
         target:
           - x86_64-unknown-linux-musl
           - x86_64-pc-windows-msvc
-          - x86_64-apple-darwin
+          - universal2-apple-darwin
         include:
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-          - target: x86_64-apple-darwin
+          - target: universal2-apple-darwin
             os: macos-latest
+            rust-targets: x86_64-apple-darwin,aarch64-apple-darwin
 
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Rust
-        run: |
-          rustup update stable
-          rustup default stable
-          rustup target add ${{ matrix.target }}
+      - name: setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets || matrix.target }}
 
-      - name: Cache Rust toolchains
+      - name: Setup cache for Rust
         uses: Swatinem/rust-cache@v2
 
-      - name: Compile (Windows MSVC)
-        if: matrix.target == 'x86_64-pc-windows-msvc'
-        run: |
-          cargo build --release --target ${{ matrix.target }}
-
-      - name: Install Zig
-        if: matrix.target != 'x86_64-pc-windows-msvc'
+      - name: Setup Zig
+        if: runner.os != 'Windows'
         uses: goto-bus-stop/setup-zig@v2
 
-      - name: Install cargo-binstall
-        if: matrix.target != 'x86_64-pc-windows-msvc'
-        uses: cargo-bins/cargo-binstall@main
-
-      - name: Compile with cargo-zigbuild
-        if: matrix.target != 'x86_64-pc-windows-msvc'
+      - name: Install cargo-zigbuild
+        if: runner.os != 'Windows'
         run: |
-          cargo binstall -y cargo-zigbuild
+          cargo install cargo-zigbuild
+
+      - name: Compile
+        if: runner.os != 'Windows'
+        run: |
           cargo zigbuild --release --target ${{ matrix.target }}
+          mv ./target/${{ matrix.target }}/release/smpt ./smpt-${{ matrix.target }}
 
-      - name: Convert to zip
-        if: ${{ !contains(matrix.target, 'windows') }}
+      - name: Compile (Windows)
+        if: runner.os == 'Windows'
         run: |
-          mv ./target/${{ matrix.target }}/release/${{ env.PACKAGE_NAME }} ./${{ env.PACKAGE_NAME }}
-          zip ./release.zip ./${{ env.PACKAGE_NAME }}
+          cargo build --release --target ${{ matrix.target }}
+          Move-Item ./target/${{ matrix.target }}/release/smpt.exe ./smpt-${{ matrix.target }}.exe
 
-      - name: Convert to zip (Windows)
-        if: ${{ contains(matrix.target, 'windows') }}
-        shell: powershell
-        run: |
-          Move-Item ./target/${{ matrix.target }}/release/${{ env.PACKAGE_NAME }}.exe ./${{ env.PACKAGE_NAME }}.exe
-          Compress-Archive -Path ./${{ env.PACKAGE_NAME }}.exe -DestinationPath ./release.zip
-
-      - name: Save a release build
+      - name: Upload an artifact
         uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.target }}
-          path: ./release.zip
+          path: |
+            ./smpt-${{ matrix.target }}
+            ./smpt-${{ matrix.target }}.exe
 
   publish:
-    name: publish
-    needs: build
+    needs: [build]
 
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: release-x86_64-unknown-linux-musl
-          path: ${{ env.PACKAGE_NAME }}-x86_64-unknown-linux-musl
-      - uses: actions/download-artifact@v4
-        with:
-          name: release-x86_64-apple-darwin
-          path: ${{ env.PACKAGE_NAME }}-x86_64-apple-darwin
-      - uses: actions/download-artifact@v4
-        with:
-          name: release-x86_64-pc-windows-msvc
-          path: ${{ env.PACKAGE_NAME }}-x86_64-pc-windows-msvc
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
 
-      - run: ls -al
-
-      - name: Move files
-        run: |
-          for release_dir in * ;do
-          mv ${release_dir}/release.zip ./${release_dir}.zip
-          done
-
-      - run: ls -al
+      - run: find
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: "*.zip"
+          files: release-*/*
           name: ${{ env.TAG }}
           token: ${{ secrets.GITHUB_TOKEN }}
