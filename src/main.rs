@@ -42,7 +42,7 @@ fn main() -> io::Result<()> {
 }
 
 fn run(exit_status: &str, new_line: &str) -> io::Result<()> {
-    let git = git::Git::new()?;
+    let git = git::Git::new();
     let python = python::Python::new();
     let cwd = cwd::Cwd::new(git.repo_path.parent())?;
 

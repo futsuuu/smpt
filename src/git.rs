@@ -1,4 +1,4 @@
-use std::{fmt::Display, io, path::PathBuf};
+use std::{fmt::Display, path::PathBuf};
 
 use git2::Repository;
 
@@ -64,15 +64,15 @@ impl Display for Git {
 }
 
 impl Git {
-    pub fn new() -> io::Result<Self> {
+    pub fn new() -> Self {
         let Ok(repo) = Repository::discover(".") else {
-            return Ok(Git::default());
+            return Git::default();
         };
         let repo_path = repo.workdir().unwrap_or_else(|| repo.path()).to_path_buf();
         let head = repo.head().ok();
         let head_oid = head.as_ref().and_then(|h| h.target());
         let (Some(head), Some(head_oid)) = (head, head_oid) else {
-            return Ok(Git {
+            return Git {
                 repo_path,
                 branch: repo
                     .config()
@@ -80,12 +80,12 @@ impl Git {
                     .unwrap_or(String::from("master")),
                 ahead: 0,
                 behind: 0,
-            });
+            };
         };
 
         let branch = if head.is_branch() {
             head.shorthand()
-                .unwrap_or("(HEAD name is not valid utf-8)")
+                .unwrap_or("(HEAD name is not valid UTF-8)")
                 .to_string()
         } else {
             head_oid.to_string().split_at(7).0.to_string()
@@ -95,11 +95,11 @@ impl Git {
             .and_then(|(upstream, _)| repo.graph_ahead_behind(head_oid, upstream.id()))
             .unwrap_or_default();
 
-        Ok(Git {
+        Git {
             repo_path,
             branch,
             ahead,
             behind,
-        })
+        }
     }
 }
