@@ -10,13 +10,21 @@ use clap::Parser;
 #[derive(Parser)]
 enum Args {
     Run {
+        #[arg(allow_negative_numbers = true)]
         exit_status: String,
         #[arg(default_value_t = String::from("\n"))]
         new_line: String,
     },
     Init {
-        shell: String,
+        #[arg(value_enum)]
+        shell: Shell,
     },
+}
+
+#[derive(Clone, clap::ValueEnum)]
+enum Shell {
+    Bash,
+    Nu,
 }
 
 fn main() -> io::Result<()> {
@@ -28,10 +36,9 @@ fn main() -> io::Result<()> {
             run(&exit_status, &new_line)?;
         }
         Args::Init { shell } => {
-            let shell_script = match shell.as_str() {
-                "nu" => include_str!("shell/init.nu"),
-                "bash" => include_str!("shell/init.bash"),
-                _ => panic!("unknown shell: {shell}"),
+            let shell_script = match shell {
+                Shell::Bash => include_str!("shell/init.bash"),
+                Shell::Nu => include_str!("shell/init.nu"),
             }
             .replace("::SMPT::", &env::current_exe()?.display().to_string());
             println!("{shell_script}");
