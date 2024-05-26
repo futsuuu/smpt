@@ -20,7 +20,12 @@ impl Display for Git {
 
         f.write_str(utils::RESET)?;
         f.write_str(" ⠶ ")?;
-        match self.branch.split_once('/').map(|t| t.0).unwrap_or(&self.branch) {
+        match self
+            .branch
+            .split_once('/')
+            .map(|t| t.0)
+            .unwrap_or(&self.branch)
+        {
             "src" | "main" | "master" => write!(f, "{} ", utils::YELLOW)?,
             "dev" | "develop" => write!(f, "{} ", utils::MAGENTA)?,
             "feat" => write!(f, "{} ", utils::CYAN)?,
@@ -63,37 +68,38 @@ impl Git {
         let Ok(repo) = Repository::discover(".") else {
             return Ok(Git::default());
         };
-
         let repo_path = repo.workdir().unwrap_or_else(|| repo.path()).to_path_buf();
-        let head_ref = repo.head().unwrap();
-        let branch = head_ref
-            .shorthand()
-            .unwrap_or_else(|| head_ref.name().expect("HEAD name is not valid utf-8"))
-            .to_string();
-
-        let git = match repo.head() {
-            Ok(head) => {
-                let head_oid = head.target().unwrap();
-                let (ahead, behind) = repo
-                    .revparse_ext("@{upstream}")
-                    .ok()
-                    .and_then(|(upstream, _)| repo.graph_ahead_behind(head_oid, upstream.id()).ok())
-                    .unwrap_or_default();
-                Git {
-                    repo_path,
-                    branch,
-                    ahead,
-                    behind,
-                }
-            }
-            Err(_) => Git {
+        let head = repo.head().ok();
+        let head_oid = head.as_ref().and_then(|h| h.target());
+        let (Some(head), Some(head_oid)) = (head, head_oid) else {
+            return Ok(Git {
                 repo_path,
+                branch: repo
+                    .config()
+                    .and_then(|c| c.get_string("init.defaultbranch"))
+                    .unwrap_or(String::from("master")),
                 ahead: 0,
                 behind: 0,
-                branch,
-            },
+            });
         };
 
-        Ok(git)
+        let branch = if head.is_branch() {
+            head.shorthand()
+                .unwrap_or("(HEAD name is not valid utf-8)")
+                .to_string()
+        } else {
+            head_oid.to_string().split_at(7).0.to_string()
+        };
+        let (ahead, behind) = repo
+            .revparse_ext("@{upstream}")
+            .and_then(|(upstream, _)| repo.graph_ahead_behind(head_oid, upstream.id()))
+            .unwrap_or_default();
+
+        Ok(Git {
+            repo_path,
+            branch,
+            ahead,
+            behind,
+        })
     }
 }
