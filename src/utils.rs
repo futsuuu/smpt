@@ -21,7 +21,7 @@ pub const CYAN_BG: &str = "\x1b[48;5;14m";
 pub fn small_number(number: usize, top: bool) -> String {
     let mut r = String::new();
     for i in number.to_string().chars() {
-        r.push_str(
+        r.push(
             if top {
                 "⁰¹²³⁴⁵⁶⁷⁸⁹"
             } else {
@@ -29,10 +29,8 @@ pub fn small_number(number: usize, top: bool) -> String {
             }
             .chars()
             .nth(i.to_string().parse().unwrap())
-            .unwrap()
-            .to_string()
-            .as_str(),
-        )
+            .unwrap(),
+        );
     }
     r
 }
