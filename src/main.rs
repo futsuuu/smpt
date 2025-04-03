@@ -40,7 +40,12 @@ fn main() -> io::Result<()> {
                 Shell::Bash => include_str!("shell/init.bash"),
                 Shell::Nu => include_str!("shell/init.nu"),
             }
-            .replace("::SMPT::", &env::current_exe()?.display().to_string());
+            .replace(
+                "::SMPT::",
+                &env::current_exe()?
+                    .to_string_lossy()
+                    .replace('\\', "\\\\"),
+            );
             println!("{shell_script}");
         }
     }
