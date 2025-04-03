@@ -5,7 +5,7 @@ updates:
     schedule:
       interval: "monthly"
     groups:
-      dependencies:
+      main:
         patterns:
           - "*"
   - package-ecosystem: "github-actions"
@@ -13,6 +13,6 @@ updates:
     schedule:
       interval: "monthly"
     groups:
-      dependencies:
+      main:
         patterns:
           - "*"
