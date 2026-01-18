@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 home = "0.5"
-git2 = { version = "0.20", default_features = false }
+git2 = { version = "0.20", default-features = false }
 clap = { version = "4.5", features = ["derive"] }
 
 [profile.release]
