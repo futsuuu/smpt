@@ -4,7 +4,6 @@ version = "0.1.5"
 edition = "2021"
 
 [dependencies]
-home = "0.5"
 git2 = { version = "0.20", default-features = false }
 clap = { version = "4.6", features = ["derive"] }
 

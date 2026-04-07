@@ -5,10 +5,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use home::home_dir;
-
-use crate::utils;
-
 pub struct Cwd {
     path: PathBuf,
     home: PathBuf,
@@ -22,14 +18,14 @@ impl Display for Cwd {
         let a = path
             .replace(
                 parent.as_str(),
-                format!("{}{}", parent, utils::BOLD).as_str(),
+                format!("{}{}", parent, crate::utils::BOLD).as_str(),
             )
             .replacen(
                 self.home.display().to_string().replace('\\', "/").as_str(),
                 "~",
                 1,
             );
-        write!(f, "{} {}", utils::BLUE, a)
+        write!(f, "{} {}", crate::utils::BLUE, a)
     }
 }
 
@@ -39,7 +35,7 @@ impl Cwd {
         let parent = parent.unwrap_or(cwd.parent().unwrap_or(Path::new("/")));
         Ok(Self {
             path: cwd.clone(),
-            home: home_dir().unwrap_or_default(),
+            home: std::env::home_dir().unwrap_or_default(),
             parent: parent.to_path_buf(),
         })
     }
